@@ -96,13 +96,7 @@ object List { // `List` companion object. Contains functions for creating and wo
   }
 
   def reverse[A](l: List[A]): List[A] = {
-    @tailrec
-    def reverseWithPartialResult(l: List[A], reversedSoFar: List[A]): List[A] = l match {
-      case Nil => reversedSoFar
-      case Cons(a, xs) => reverseWithPartialResult(xs, Cons(a, reversedSoFar))
-    }
-
-    reverseWithPartialResult(l, Nil)
+    foldLeft[A, List[A]](l, Nil:List[A])((xs, x) => Cons(x, xs))
   }
 
   def tRecFoldRight[A,B](l: List[A], z: B)(f: (A,B) => B): B = {
