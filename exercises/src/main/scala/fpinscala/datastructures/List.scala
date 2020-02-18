@@ -1,6 +1,7 @@
 package fpinscala.datastructures
 
 import scala.annotation.tailrec
+import scala.concurrent.Future
 
 sealed trait List[+A] // `List` data type, parameterized on a type, `A`
 case object Nil extends List[Nothing] // A `List` data constructor representing the empty list
@@ -128,5 +129,45 @@ object List { // `List` companion object. Contains functions for creating and wo
 
   def filter[A](l: List[A])(p: A => Boolean): List[A] =
     flatMap(l)(a => if(p(a)) List(a) else Nil)
+
+  def subsequenceNaive[A](l1: List[A], l2: List[A]): Boolean = {
+    def subsequence_aux(x1: List[A], x2: List[A]): Boolean = {
+      (x1, x2) match {
+        case (_, Nil) => true
+        case (Nil, _) => false
+        case (Cons(a, xs1), Cons(b, xs2)) if b == a => subsequence_aux(xs1, xs2) || subsequence_aux(xs1, l2)
+        case (Cons(_, xs1), _) => subsequence_aux(xs1, l2)
+      }
+    }
+
+    subsequence_aux(l1,l2)
+  }
+
+  def subsequence[A](l1: List[A], l2: List[A]): Boolean = {
+    var availableResults: Map[(List[A], List[A]), Boolean] = Map.empty
+
+
+    def memoisedSubsequence(x1: List[A], x2: List[A]): Boolean = {
+      availableResults.getOrElse((x1, x2), {
+        val updatedAvailableResults = availableResults + {
+          (x1, x2) -> { (x1, x2) match {
+            case (_, Nil) =>
+              true
+            case (Nil, _) =>
+              false
+            case (Cons(a, xs1), Cons(b, xs2)) if b == a =>
+              memoisedSubsequence(xs1, xs2) || memoisedSubsequence(xs1, l2)
+            case (Cons(_, xs1), _) =>
+              memoisedSubsequence(xs1, l2)
+          }}
+        }
+
+        availableResults = updatedAvailableResults
+        availableResults(x1, x2)  //will never cause an exception because availableResults(x1, x2) is defined above
+      })
+    }
+
+    memoisedSubsequence(l1, l2)
+  }
 
 }

@@ -187,9 +187,44 @@ class ListTest extends AnyWordSpec with Matchers {
 
     "remove odd numbers from a list when applied to a predicate that tests for" +
       "even numbers" in {
-      List.filter(List(1,2,3,4))(n => n % 2 == 0) should be(List(2, 4))
+      List.filter(List(1, 2, 3, 4))(n => n % 2 == 0) should be(List(2, 4))
+    }
+  }
+
+  "the function subsequenceNaive" should {
+    "identify the empty list as a sublist of another one" in {
+      List.subsequenceNaive(List(1, 2, 3), Nil) should be(true)
     }
 
+    "identify a non-empty list not to be the sublist of the empty list" in {
+      List.subsequenceNaive(Nil, List(1)) should be(false)
+    }
+
+    "correctly identify a sublist" in {
+      List.subsequenceNaive(List(1, 2, 1, 1, 2, 3, 1), List(1, 2, 3)) should be(true)
+    }
+
+    "correctly recognise when a list is not a sublist of another" in {
+      List.subsequenceNaive(List(1, 2, 1, 1, 2, 1, 3), List(1, 2, 3)) should be(false)
+    }
+  }
+
+  "the function subsequence" should {
+    "identify the empty list as a sublist of another one" in {
+      List.subsequence(List(1, 2, 3), Nil) should be(true)
+    }
+
+    "identify a non-empty list not to be the sublist of the empty list" in {
+      List.subsequence(Nil, List(1)) should be(false)
+    }
+
+    "correctly identify a sublist" in {
+      List.subsequence(List(1, 2, 1, 1, 2, 3, 1), List(1, 2, 3)) should be(true)
+    }
+
+    "correctly recognise when a list is not a sublist of another" in {
+      List.subsequence(List(1, 2, 1, 1, 2, 1, 3), List(1, 2, 3)) should be(false)
+    }
   }
 
 }
