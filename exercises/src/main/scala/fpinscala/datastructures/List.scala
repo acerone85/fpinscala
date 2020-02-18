@@ -53,7 +53,6 @@ object List { // `List` companion object. Contains functions for creating and wo
   def product2(ns: List[Double]) =
     foldRight(ns, 1.0)(_ * _) // `_ * _` is more concise notation for `(x,y) => x * y`; see sidebar
 
-
   def tail[A](l: List[A]): List[A] = l match {
     case Nil => Nil     //I'd prefer tail to return Option[List[A]], but the return type
                         // was enforced by the function definition
@@ -112,13 +111,22 @@ object List { // `List` companion object. Contains functions for creating and wo
       case (l, partiallyFlattened) => append(l, partiallyFlattened)
     }
 
-  def map[A,B](l: List[A])(f: A => B): List[B] = l match {
+  def higherOrderMap[A, B, F[_]](l: List[A])(f: A => F[B])(mapF: (F[B], List[B]) => List[B]): List[B] = l match {
     case Nil => Nil
-    case Cons(a, xs) => Cons(f(a), map(xs)(f))
+    case Cons(a, xs) => mapF(f(a), higherOrderMap(xs)(f)(mapF))
   }
 
-  def flatMap[A,B](l: List[A])(f: A => List[B]): List[B] = l match {
-    case Nil => Nil
-    case Cons(a, xs) => append(f(a), flatMap(xs)(f))
-  }
+  private[this] type Id[A] = A
+
+  def map[A,B](l: List[A])(f: A => B): List[B] =
+    higherOrderMap[A, B, Id](l)(f)(Cons(_, _))
+
+
+  def flatMap[A,B](l: List[A])(f: A => List[B]): List[B] =
+    higherOrderMap(l)(f)(append)
+
+
+  def filter[A](l: List[A])(p: A => Boolean): List[A] =
+    flatMap(l)(a => if(p(a)) List(a) else Nil)
+
 }

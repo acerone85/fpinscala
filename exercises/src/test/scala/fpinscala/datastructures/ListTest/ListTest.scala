@@ -136,4 +136,60 @@ class ListTest extends AnyWordSpec with Matchers {
       List.appendWithFold(List(1, 2, 3), List(4, 5)) should be(List(1, 2, 3, 4, 5))
     }
   }
+
+  "the function map" should {
+    "return the empty list when applied to an empty list" in {
+      List.map(Nil: List[Int])(_ + 1) should be(Nil)
+    }
+
+    "apply the function argument to each element of the input list" in {
+      List.map(List(1,2,3))(_ + 1) should be(List(2,3,4))
+    }
+  }
+
+  "the function flatten" should {
+    "flatten the empty list to the empty list" in {
+      List.flatten(Nil) should be(Nil)
+    }
+
+    "correctly flatten a list of lists into a list" in {
+      List.flatten(List(List(1), List(2,3), List(4,5,6))) should be(List(1,2,3,4,5,6))
+    }
+  }
+
+  "the function flatMap" should {
+    "return the empty list when applied to the empty list" in {
+      List.flatMap(Nil: List[Int])(List(_)) should be(Nil)
+    }
+
+    "return the original list when applied to the function that converts an integer into a singleton list" in {
+      List.flatMap(List(1, 2, 3))(List(_)) should be(List(1, 2, 3))
+    }
+
+    "return a list where each element is duplicated when applied to a function that convers an integer into " +
+      "a list containing that integer twice" in {
+      List.flatMap(List(1,2,3))(n => List(n,n)) should be(List(1, 1, 2, 2, 3, 3))
+    }
+  }
+
+  "the function filter" should {
+    "return the empty list when applied to the empty list" in {
+      List.filter(Nil: List[Int])(_ => true) should be(Nil)
+    }
+
+    "return the empty list when applied to the always false predicate" in {
+      List.filter(List(1, 2, 3))(_ => false) should be(Nil)
+    }
+
+    "return the input list when applied to the always true predicate" in {
+      List.filter(List(1, 2, 3))(_ => true) should be(List(1, 2, 3))
+    }
+
+    "remove odd numbers from a list when applied to a predicate that tests for" +
+      "even numbers" in {
+      List.filter(List(1,2,3,4))(n => n % 2 == 0) should be(List(2, 4))
+    }
+
+  }
+
 }
