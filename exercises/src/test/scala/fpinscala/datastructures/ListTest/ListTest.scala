@@ -191,39 +191,39 @@ class ListTest extends AnyWordSpec with Matchers {
     }
   }
 
-  "the function subsequenceNaive" should {
+  "the function hasSubsequenceNaive" should {
     "identify the empty list as a sublist of another one" in {
-      List.subsequenceNaive(List(1, 2, 3), Nil) should be(true)
+      List.hasSubsequenceNaive(List(1, 2, 3), Nil) should be(true)
     }
 
     "identify a non-empty list not to be the sublist of the empty list" in {
-      List.subsequenceNaive(Nil, List(1)) should be(false)
+      List.hasSubsequenceNaive(Nil, List(1)) should be(false)
     }
 
     "correctly identify a sublist" in {
-      List.subsequenceNaive(List(1, 2, 1, 1, 2, 3, 1), List(1, 2, 3)) should be(true)
+      List.hasSubsequenceNaive(List(1, 2, 1, 1, 2, 3, 1), List(1, 2, 3)) should be(true)
     }
 
     "correctly recognise when a list is not a sublist of another" in {
-      List.subsequenceNaive(List(1, 2, 1, 1, 2, 1, 3), List(1, 2, 3)) should be(false)
+      List.hasSubsequenceNaive(List(1, 2, 1, 1, 2, 1, 3), List(1, 2, 3)) should be(false)
     }
   }
 
-  "the function subsequence" should {
+  "the function hasSubsequence" should {
     "identify the empty list as a sublist of another one" in {
-      List.subsequence(List(1, 2, 3), Nil) should be(true)
+      List.hasSubsequence(List(1, 2, 3), Nil) should be(true)
     }
 
     "identify a non-empty list not to be the sublist of the empty list" in {
-      List.subsequence(Nil, List(1)) should be(false)
+      List.hasSubsequence(Nil, List(1)) should be(false)
     }
 
     "correctly identify a sublist" in {
-      List.subsequence(List(1, 2, 1, 1, 2, 3, 1), List(1, 2, 3)) should be(true)
+      List.hasSubsequence(List(1, 2, 1, 1, 2, 3, 1), List(1, 2, 3)) should be(true)
     }
 
     "correctly recognise when a list is not a sublist of another" in {
-      List.subsequence(List(1, 2, 1, 1, 2, 1, 3), List(1, 2, 3)) should be(false)
+      List.hasSubsequence(List(1, 2, 1, 1, 2, 1, 3), List(1, 2, 3)) should be(false)
     }
   }
 

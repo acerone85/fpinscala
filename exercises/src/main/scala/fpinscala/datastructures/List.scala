@@ -130,44 +130,44 @@ object List { // `List` companion object. Contains functions for creating and wo
   def filter[A](l: List[A])(p: A => Boolean): List[A] =
     flatMap(l)(a => if(p(a)) List(a) else Nil)
 
-  def subsequenceNaive[A](l1: List[A], l2: List[A]): Boolean = {
-    def subsequence_aux(x1: List[A], x2: List[A]): Boolean = {
-      (x1, x2) match {
+  def hasSubsequenceNaive[A](sup: List[A], sub: List[A]): Boolean = {
+    def subsequence_aux(partialSup: List[A], partialSub: List[A]): Boolean = {
+      (partialSup, partialSub) match {
         case (_, Nil) => true
         case (Nil, _) => false
-        case (Cons(a, xs1), Cons(b, xs2)) if b == a => subsequence_aux(xs1, xs2) || subsequence_aux(xs1, l2)
-        case (Cons(_, xs1), _) => subsequence_aux(xs1, l2)
+        case (Cons(a, xs1), Cons(b, xs2)) if b == a => subsequence_aux(xs1, xs2) || subsequence_aux(xs1, sub)
+        case (Cons(_, xs1), _) => subsequence_aux(xs1, sub)
       }
     }
 
-    subsequence_aux(l1,l2)
+    subsequence_aux(sup,sub)
   }
 
-  def subsequence[A](l1: List[A], l2: List[A]): Boolean = {
+  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = {
     var availableResults: Map[(List[A], List[A]), Boolean] = Map.empty
 
 
-    def memoisedSubsequence(x1: List[A], x2: List[A]): Boolean = {
-      availableResults.getOrElse((x1, x2), {
+    def memoisedSubsequence(partialSup: List[A], partialSub: List[A]): Boolean = {
+      availableResults.getOrElse((partialSup, partialSub), {
         val updatedAvailableResults = availableResults + {
-          (x1, x2) -> { (x1, x2) match {
+          (partialSup, partialSub) -> { (partialSup, partialSub) match {
             case (_, Nil) =>
               true
             case (Nil, _) =>
               false
             case (Cons(a, xs1), Cons(b, xs2)) if b == a =>
-              memoisedSubsequence(xs1, xs2) || memoisedSubsequence(xs1, l2)
+              memoisedSubsequence(xs1, xs2) || memoisedSubsequence(xs1, sub)
             case (Cons(_, xs1), _) =>
-              memoisedSubsequence(xs1, l2)
+              memoisedSubsequence(xs1, sub)
           }}
         }
 
         availableResults = updatedAvailableResults
-        availableResults(x1, x2)  //will never cause an exception because availableResults(x1, x2) is defined above
+        availableResults(partialSup, partialSub)  //will never cause an exception because// availableResults(partialSup, partialSub) is defined above
       })
     }
 
-    memoisedSubsequence(l1, l2)
+    memoisedSubsequence(sup, sub)
   }
 
 }
