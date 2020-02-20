@@ -1,6 +1,6 @@
 package fpinscala.datastructures
 
-import fpinscala.datastructures.Tree.{ImplementationFlag, WithFold, WithoutFold}
+import Tree.{ImplementationFlag, WithFold, WithoutFold}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
