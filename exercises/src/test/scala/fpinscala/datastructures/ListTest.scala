@@ -1,7 +1,7 @@
 package fpinscala.datastructures
 
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 class ListTest extends AnyWordSpec with Matchers {
 
@@ -88,31 +88,31 @@ class ListTest extends AnyWordSpec with Matchers {
 
   "the function foldRight" should {
     "behave as the identity when using Nil as base value and Cons as reducer" in {
-      List.foldRight(List(1,2,3,4,5), Nil: List[Int])( (x, xs) => Cons(x, xs)) should be(List(1,2,3,4,5))
+      List.foldRight(List(1,2,3,4,5), Nil: List[Int])((x, xs) => Cons(x, xs)) should be(List(1,2,3,4,5))
     }
 
     "behave as mkString(\",\") - with trailin comma - " +
       "when using \"\" as base value and _ + \",\" + _ as reducer" in {
-      (List.foldRight(List("a", "b", "c", "d", "e"), "")( (elem, string) => elem + "," + string )
+      (List.foldRight(List("a", "b", "c", "d", "e"), "")((elem, string) => elem + "," + string )
         should be ("a,b,c,d,e,"))
     }
   }
 
   "the function tRecFoldRight" should {
     "behave as the identity when using Nil as base value and Cons as reducer" in {
-      List.tRecFoldRight(List(1,2,3,4,5), Nil: List[Int])( (x, xs) => Cons(x, xs)) should be(List(1,2,3,4,5))
+      List.tRecFoldRight(List(1,2,3,4,5), Nil: List[Int])((x, xs) => Cons(x, xs)) should be(List(1,2,3,4,5))
     }
 
     "behave as mkString(\",\") - with trailin comma - " +
       "when using \"\" as base value and _ + \",\" + _ as reducer" in {
-      (List.tRecFoldRight(List("a", "b", "c", "d", "e"), "")( (elem, string) => elem + "," + string )
+      (List.tRecFoldRight(List("a", "b", "c", "d", "e"), "")((elem, string) => elem + "," + string )
         should be ("a,b,c,d,e,"))
     }
   }
 
   "the function foldLeft" should {
     "behave as reverse when using Nil as base value and Cons as reducer" in {
-      (List.foldLeft(List(1, 2, 3, 4, 5), Nil: List[Int])( (xs, x) => Cons(x, xs))
+      (List.foldLeft(List(1, 2, 3, 4, 5), Nil: List[Int])((xs, x) => Cons(x, xs))
         should be (List(5, 4, 3, 2, 1)))
     }
 
