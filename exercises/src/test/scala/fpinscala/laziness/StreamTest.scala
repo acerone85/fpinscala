@@ -68,6 +68,46 @@ class StreamTest extends AnyWordSpec with Matchers {
         allInts.takeWhile(_ < 10, implementation).toList should be (0 until 10)
       }
     }
+
+    s"Stream::exists (when using $implementation implementation)" should {
+      "return false if invoked by the Empty stream" in {
+        Empty.exists(_ => true, implementation) should be(false)
+      }
+
+      "return false if invoked by a finite stream using the always false predicate as argument" in {
+        allInts.take(5).exists(_ => false, implementation) should be(false)
+      }
+
+      "return true if invoked by an infinite stream using a predicate" +
+        " that is satisfied by one of the stream elements" in {
+        allInts.exists(_ == 10, implementation) should be(true)
+      }
+    }
+
+    s"Stream::forall (when using $implementation implementation)" should {
+      "return true if invoked by the Empty stream" in {
+        Empty.forAll(_ => false, implementation) should be(true)
+      }
+
+      "return true if invoked by a finite stream using the always true predicate as argument" in {
+        allInts.take(5).forAll(_ => true, implementation) should be(true)
+      }
+
+      "return false if invoked by an infinite stream using a predicate" +
+        " that is not satisfied by one of the stream elements" in {
+        allInts.forAll(_ != 10, implementation) should be(false)
+      }
+    }
+
+    s"Stream::headOption (when using $implementation implementation)" should {
+      "return None when invoked by the Empty stream" in {
+        Empty.headOption(implementation) should be (None)
+      }
+
+      "return the first element of an infinite stream" in {
+        allInts.headOption(implementation) should be(Some(0))
+      }
+    }
   }
 
 }

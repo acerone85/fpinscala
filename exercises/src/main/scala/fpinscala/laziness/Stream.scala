@@ -9,8 +9,8 @@ trait Stream[+A] {
       case _ => z
     }
 
-  def exists(p: A => Boolean): Boolean = 
-    foldRight(false)((a, b) => p(a) || b) // Here `b` is the unevaluated recursive step that folds the tail of the stream. If `p(a)` returns `true`, `b` will never be evaluated and the computation terminates early.
+  def exists(p: A => Boolean, implementation: Implementation): Boolean =
+    implementation.exists(this)(p)
 
   def toList: List[A] = foldRight(Nil: List[A])((a, xs) => a::xs)
 
@@ -39,13 +39,15 @@ trait Stream[+A] {
    * and the method below will take the Implementation object to use as a parameter.
    * Two different implementation objects are provided, `FoldRight` and `NoFoldRight`.
    * The choice to use FoldRight as the default implementation for Stream methods
-   * has been made, although this choice is arbitrary. */
+   * has been made, although this choice is arbitrary.
+   */
   def takeWhile(p: A => Boolean, implementation: Implementation = FoldRight): Stream[A] =
     implementation.takeWhile(this)(p)
 
-  def forAll(p: A => Boolean): Boolean = ???
+  def forAll(p: A => Boolean, implementation: Implementation = FoldRight): Boolean =
+    implementation.forall(this)(p)
 
-  def headOption: Option[A] = ???
+  def headOption(implementation: Implementation = FoldRight): Option[A] = implementation.headOption(this)
 
   // 5.7 map, filter, append, flatmap using foldRight. Part of the exercise is
   // writing your own function signatures.
@@ -74,25 +76,52 @@ object Stream {
   def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = ???
 
   sealed trait Implementation {
+    private[Stream] def exists[A](stream: Stream[A])(p: A => Boolean): Boolean
+
+    private[Stream] def forall[A](stream: Stream[A])(p: A => Boolean): Boolean =
+      !exists(stream)(a => !p(a))
+
     private[Stream] def takeWhile[A](stream: Stream[A])(p: A => Boolean): Stream[A]
+
+    private[Stream] def headOption[A](stream: Stream[A]): Option[A]
   }
 
   object NoFoldRight extends Implementation {
-    override private[Stream] def takeWhile[A](stream: Stream[A])(p: A => Boolean): Stream[A] = {
+
+    override private[Stream] def exists[A](stream: Stream[A])(p: A => Boolean): Boolean =
+      stream match {
+        case Empty => false
+        case Cons(head, tail) => p(head()) || exists(tail())(p)
+      }
+
+    override private[Stream] def takeWhile[A](stream: Stream[A])(p: A => Boolean): Stream[A] =
       stream match {
         case Empty => Empty
-        case Cons(hd, tl) => {
-          if (p(hd())) Cons(hd, () => takeWhile(tl())(p)) else Empty
+        case Cons(head, tail) => {
+          if (p(head())) Cons(head, () => takeWhile(tail())(p)) else Empty
         }
       }
+
+    override private[Stream] def headOption[A](stream: Stream[A]): Option[A] = stream match {
+      case Empty => None
+      case Cons(head, tail) => Some(head())
     }
   }
 
   object FoldRight extends Implementation {
+
+    override private[Stream] def exists[A](stream: Stream[A])(p: A => Boolean): Boolean =
+      stream.foldRight(false)((a, b) => p(a) || b)
+
+
     override private[Stream] def takeWhile[A](stream: Stream[A])(p: A => Boolean): Stream[A] =
       stream.foldRight(Empty: Stream[A]){ (a, partialStream) =>
         if (!p(a)) Empty
         else Cons(() => a, () => partialStream)
+    }
+
+    override private[Stream] def headOption[A](stream: Stream[A]): Option[A] = {
+      stream.foldRight(None: Option[A])((a, _) => Some(a))
     }
   }
 }
