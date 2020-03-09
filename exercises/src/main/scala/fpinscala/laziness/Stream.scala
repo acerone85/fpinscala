@@ -1,7 +1,11 @@
 package fpinscala.laziness
 
 import Stream._
-trait Stream[+A] {
+
+//adding sealed to trait Stream to ensure that pattern matching on Streams
+// does not generate any warning at compile time for some methods
+// (take, drop, zipWith)
+sealed trait Stream[+A] {
   self =>
 
   def foldRight[B](z: => B)(f: (A, => B) => B): B = // The arrow `=>` in front of the argument type `B` means that the function `f` takes its second argument by name and may choose not to evaluate it.
@@ -20,6 +24,7 @@ trait Stream[+A] {
     case Empty => None
     case Cons(h, t) => if (f(h())) Some(h()) else t().find(f)
   }
+
   def take(n: Int): Stream[A] = (n, this) match {
     case (0, _) => Stream.empty[A]
     case (_, Empty) => Stream.empty[A]
@@ -111,13 +116,36 @@ trait Stream[+A] {
   def startsWith[B](s: Stream[B]): Boolean =
     this.zipAll(s).takeWhile{ case (_, maybeB) => maybeB.isDefined}
       .forall { case (maybeA, maybeB) => maybeA.contains(maybeB.get)}
+
+  def tails(): Stream[Stream[A]] = {
+    def tailOption(stream: Stream[A]): Option[Stream[A]] = stream match {
+      case Empty => None
+      case Cons(_, tail) => Some(tail())
+    }
+
+    unfold[Stream[A], Option[Stream[A]]](Some(this)) {
+      _.flatMap(stream => Some(stream, tailOption(stream)))
+    }
+  }
+
+  //in the implementation below, we never access the tail of an
+  // intermediate stream, hence each step of the scanRight takes
+  // constant time. The asymptotic time of execution is O(|this|)
+  def scanRight[B](init: B)(f: (A, B) => B): Stream[Stream[B]] = {
+    this.foldRight(cons(cons(init, empty), empty): Cons[Cons[B]]) {
+      case (a, partialStreams) =>
+        val latestStream = partialStreams.h()
+        val b = latestStream.h()
+        cons(cons(f(a,b), latestStream), partialStreams)
+    }
+  }
 }
 
 case object Empty extends Stream[Nothing]
 case class Cons[+A](h: () => A, t: () => Stream[A]) extends Stream[A]
 
 object Stream {
-  def cons[A](hd: => A, tl: => Stream[A]): Stream[A] = {
+  def cons[A](hd: => A, tl: => Stream[A]): Cons[A] = {
     lazy val head = hd
     lazy val tail = tl
     Cons(() => head, () => tail)
@@ -141,10 +169,11 @@ object Stream {
     genFib(0,1)
   }
 
-  def fromUnfold(n: Int) = Stream.unfold[Int, Int](n)(n => Some(n, n+1))
+  object WithUnfoldInObject {
+    def from(n: Int) = Stream.unfold[Int, Int](n)(n => Some(n, n + 1))
 
-  val fibsUnfold = unfold[Int, (Int, Int)]((0,1)){ case (m, n) => Some((m, (n , m + n))) }
-
+    val fibs = unfold[Int, (Int, Int)]((0, 1)) { case (m, n) => Some((m, (n, m + n))) }
+  }
   sealed trait Implementation {
     private[Stream] def exists[A](stream: Stream[A])(p: A => Boolean): Boolean
 

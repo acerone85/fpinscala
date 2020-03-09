@@ -164,15 +164,15 @@ class StreamTest extends AnyWordSpec with Matchers {
     }
   }
 
-  "Stream.fibsUnfold" should {
+  "Stream.WithUnfoldInObject.fibs" should {
     "generate correctly the first ten fibonacci numbers" in {
-      Stream.fibsUnfold.take(10).toList should be (List(0, 1, 1, 2, 3, 5, 8, 13, 21, 34))
+      Stream.WithUnfoldInObject.fibs.take(10).toList should be (List(0, 1, 1, 2, 3, 5, 8, 13, 21, 34))
     }
   }
 
-  "Stream.fromUnfold" should {
+  "Stream.WithUnfoldInObject.from" should {
     "generate correctly the first ten integers" in {
-      Stream.fromUnfold(0).take(10).toList should be (0 until 10)
+      Stream.WithUnfoldInObject.from(0).take(10).toList should be (0 until 10)
     }
   }
 
@@ -200,7 +200,7 @@ class StreamTest extends AnyWordSpec with Matchers {
     }
   }
 
-  "Stream.startsWith" should {
+  "Stream::startsWith" should {
     "return true if Empty is passed as argument" in {
       allInts.startsWith(Empty) should be (true)
     }
@@ -218,4 +218,39 @@ class StreamTest extends AnyWordSpec with Matchers {
     }
   }
 
+  "Stream::tails" should {
+    "return the Stream containing the Empty Stream when invoked by the empty stream" in {
+      (Stream.empty.tails.toList.map(_.toList)
+        should be (Stream(Stream.empty).toList.map(_.toList)))
+    }
+
+    "return the stream of remaining suffixes when invoked by a finite stream" in {
+      (Stream(1, 2, 3).tails.toList.map(_.toList)
+        should be(Stream(
+          Stream(1, 2, 3),
+          Stream(2, 3),
+          Stream(3),
+          Stream.empty
+        ).toList.map(_.toList))
+      )
+    }
+  }
+
+  "Stream::scanRight" should {
+    "return Stream(Stream(init)) when invoked by the Empty stream" in {
+      (Stream.empty[Int].scanRight(0)(_ + _).toList.map(_.toList)
+        should be(Stream(Stream(0)).toList.map(_.toList)))
+    }
+
+    "return the streams of intermediate results when invoked by a finite stream" in {
+      (Stream(1,2,3).scanRight(0)(_ + _).toList.map(_.toList)
+        should be(Stream(
+          Stream(6,5,3,0),
+          Stream(5,3,0),
+          Stream(3,0),
+          Stream(0)
+        ).toList.map(_.toList))
+      )
+    }
+  }
 }
