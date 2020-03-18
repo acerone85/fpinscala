@@ -3,7 +3,8 @@ val commonSettings = Seq(
   libraryDependencies ++=
     Seq(
       "org.scalactic" %% "scalactic" % "3.1.0",
-      "org.scalatest" %% "scalatest" % "3.1.0" % "test"
+      "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+      "joda-time" % "joda-time" % "2.10.5"
     )
 )
 
