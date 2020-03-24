@@ -2,9 +2,11 @@ val commonSettings = Seq(
   scalaVersion := "2.12.8",
   libraryDependencies ++=
     Seq(
-      "org.scalactic" %% "scalactic" % "3.1.0",
-      "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-      "joda-time" % "joda-time" % "2.10.5"
+      "org.scalactic" %% "scalactic" % "3.1.1",
+      "org.scalatest" %% "scalatest" % "3.1.1" % "test",
+      "joda-time" % "joda-time" % "2.10.5",
+      "org.scalacheck" %% "scalacheck" % "1.14.2" % "test",
+      "org.scalatestplus" %% "scalatestplus-scalacheck" % "1.0.0-SNAP3"
     )
 )
 
