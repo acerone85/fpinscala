@@ -14,6 +14,22 @@ sealed trait Stream[+A] {
       case _ => z
     }
 
+  //I don't see an easy way to force foldLeft to stop a computation,
+  //without providing a third argument that says when the computation
+  //will be stopped. In practice, an eager version of foldLeft
+  // would still be used to avoid stack overflow exceptions
+  // when invoked on finite-streams, due to its tail-recursive nature.
+  @annotation.tailrec
+  final def foldLeft[B](z: => B)(f: (B, A) => B): B = this match {
+    case Cons(h, t) => t().foldLeft(f(z, h()))(f)
+    case Empty => z
+  }
+
+  def isEmpty: Boolean = this match {
+    case Empty => true
+    case Cons(h, t) => false
+  }
+
   def exists(p: A => Boolean, implementation: Implementation = FoldRight): Boolean =
     implementation.exists(this)(p)
 

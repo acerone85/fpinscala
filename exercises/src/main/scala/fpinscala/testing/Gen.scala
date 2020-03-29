@@ -8,6 +8,7 @@ import Gen._
 import Prop._
 import java.util.concurrent.{ExecutorService, Executors}
 
+import fpinscala.state.RNG.Simple
 import fpinscala.state.State.Rand
 
 import scala.reflect.ClassTag
@@ -40,14 +41,14 @@ case class Failed(message: String, testsPassed: Int) extends Result {
   def recoverWith(r: Failed => Result): Result = r(this)
 }
 
-case class Prop(run: (TestCases, RNG) => Result) {
+case class Prop(run: (Size, Size, TestCases, RNG) => Result) {
   self =>
-  def &&(that: Prop): Prop = Prop { (testCases, rng) =>
-    self.run(testCases, rng)
+  def &&(that: Prop): Prop = Prop { (minSize, maxSize, testCases, rng) =>
+    self.run(minSize, maxSize, testCases, rng)
       .prependErrorMessage("(")
       .appendErrorMessage("Failure happened in left branch\n)")
       .continueWith {
-        that.run(testCases, rng)
+        that.run(minSize, maxSize, testCases, rng)
           .prependErrorMessage("(")
           .appendErrorMessage("Failure happened in right branch\n)")
       }
@@ -61,9 +62,9 @@ case class Prop(run: (TestCases, RNG) => Result) {
   // forall test cases, either p1 or p2 is satisfied. The latter
   // is impossible to specify in the current model.
 
-  def ||(that: Prop): Prop = Prop { (testCases, rng)  =>
-    self.run(testCases,rng).recoverWith { f: Failed =>
-      that.run(testCases, rng)
+  def ||(that: Prop): Prop = Prop { (minSize, maxSize, testCases, rng)  =>
+    self.run(minSize, maxSize, testCases,rng).recoverWith { f: Failed =>
+      that.run(minSize, maxSize, testCases, rng)
         .prependErrorMessage(s"(\nLeft branch failed with result $f")
         .appendErrorMessage(s")")
     }
@@ -72,9 +73,12 @@ case class Prop(run: (TestCases, RNG) => Result) {
 
 object Prop {
   type TestCases = Int
+  type Size = Int
 
-  def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = Prop { (testCases, rng) =>
-    stream(gen)(rng)
+  val True: Prop = Prop { (_, _, _, _) => Passed }
+
+  def forAll[A](gen: Gen[A])(f: A => Boolean): Prop = Prop { (_, _, testCases, rng) =>
+    stream(gen.r)(rng)
       .zipWith(Stream.from(0)){ case (a, b) => (a, b)}
       .take(testCases)
       .map { case (a, i) => try {
@@ -84,9 +88,42 @@ object Prop {
       .getOrElse(Passed)
   }
 
+  def forAll[A](gen: SGen[A])(f: A => Boolean): Prop = Prop { (minSize, maxSize, testCases, rng) =>
+    val casesPerSize = testCases / (maxSize + 1 - minSize)
+
+    val propsBySize: Stream[Prop] =
+      Stream.from(minSize).take(Math.max(maxSize, testCases)).map { i =>
+        forAll(gen.forSize(i))(f)
+    }
+    val propForAllSizes = propsBySize.foldRight(Prop.True)( _ && _)
+
+    propForAllSizes.run(minSize, maxSize, casesPerSize, rng)
+  }
+
   private def buildMsg[A](a: A, e: Throwable): String = {
     s"test case ${a} generated an exception ${e.getMessage}\n" +
       s"Stack trace: ${e.getStackTrace.mkString("\n")}"
+  }
+
+  def run(
+    p: Prop,
+    minSize: Size = 0,
+    maxSize: Size = 100,
+    testCases: TestCases = 100,
+    rng: RNG = Simple(System.currentTimeMillis())
+  ): Result = p.run(minSize, maxSize, testCases, rng)
+
+  def check(
+    p: Prop,
+    minSize: Size = 0,
+    maxSize: Size = 100,
+    testCases: TestCases = 100,
+    rng: RNG = Simple(System.currentTimeMillis())
+  ): Unit = run(p, minSize, maxSize, testCases, rng) match {
+    case Passed => println(s"Test passed!\nmaxSize: $maxSize, testCases: $testCases")
+    case Failed(message, i) =>
+      println(s"Test failed with message $message:" +
+      s"\nmaxSize: $maxSize, testCases: $testCases, test failed: $i")
   }
 }
 
@@ -108,7 +145,10 @@ object Gen {
     Gen.choose(0, pinv).flatMap( outcome => if (outcome < pinv) gen1 else gen2)
   }
 
-  private def stream[A](r: Rand[A])(rng: RNG): Stream[A] = {
+  def listOf[A](g: Gen[A]): Gen[List[A]] = g.listOfAtMostN(Int.MaxValue)
+
+
+  def stream[A](r: Rand[A])(rng: RNG): Stream[A] = {
     val (a, rngNext) = r.run(rng)
     Stream.cons[A](a, stream(r)(rngNext))
   }
@@ -125,16 +165,17 @@ case class Gen[+A](r: State[RNG, A])  {
   def toOption: Gen[Option[A]] = toOption(100)
 
   def ground[B](implicit ev: A <:< Option[B]): Gen[B] = {
-    map(_.getOrElse(this.ground))
+    //quite interesting that eta expansion is necessary here to get the term to type
+    flatMap(a => a.map(b => Gen.unit[B](b)).getOrElse(ground))
   }
 
-  def listOfN[A](n: Int): Gen[List[A]] =
+  def listOfN(n: Int): Gen[List[A]] =
     Gen(State.sequence(List.fill(n)(r)))
 
-  def listOfAtMostN[A](n: Int): Gen[List[A]] =
+  def listOfAtMostN(n: Int): Gen[List[A]] =
     Gen.choose(0, n).flatMap(listOfN)
 
-  def stream[A](rng: RNG): Stream[A] =
+  def stream(rng: RNG): Stream[A] =
     Gen.stream(r)(rng)
 
   def unsized: SGen[A] = SGen(_ => this)
@@ -152,6 +193,25 @@ case class SGen[+A](forSize: Int => Gen[A]) {
 
 object SGen {
   def listOf[A](gen: Gen[A]): SGen[List[A]] = SGen(gen.listOfN)
-  
+  def listOf1[A](gen: Gen[A]): SGen[Option[List[A]]] = SGen {
+      case 0 => Gen.unit(None)
+      case n => gen.listOfN(n).map(l => Some(l))
+    }
+
+  def unsized[A](gen: Gen[A]): SGen[A] = gen.unsized
 }
 
+object Main extends App {
+  val smallInts = Gen.choose(-10, 10)
+
+  //another approach would be that of requiring the minimum size for a list
+  //to be tested to be greater than 0, but this approach is somewhat
+  //flawed in that the fact that max behaves correctly only on non-empty lists
+  //should be part of the specification, not of the way in which it is tested
+  val maxSpec = Prop.forAll(SGen.listOf1(smallInts)) { _.forall { list =>
+    val max = list.max
+    list.forall( _ <= max)
+  }}
+
+  Prop.check(maxSpec, testCases = 1000)
+}
