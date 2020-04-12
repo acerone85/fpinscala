@@ -23,6 +23,13 @@ sealed trait Result {
   def appendErrorMessage(s: String): Result
   def continueWith(r: => Result): Result
   def recoverWith(r: Failed => Result): Result
+
+}
+
+object Result {
+  implicit def run(p: Prop): Result = Prop.run(p)
+  val passed: Result = Passed
+  def failed(msg: String, testPassed: Int) = Failed(msg, testPassed)
 }
 
 object Passed extends Result {
@@ -83,8 +90,9 @@ object Prop {
       .take(testCases)
       .map { case (a, i) => try {
         if (f(a)) Passed else Failed(a.toString, i)
-      } catch { case e: Throwable => Failed(buildMsg(a, e), i) }
-      }.find(_.isFalsified)
+      } catch {
+        case e: Throwable => Failed(buildMsg(a, e), i)
+      }}.find(_.isFalsified)
       .getOrElse(Passed)
   }
 
@@ -147,7 +155,6 @@ object Gen {
 
   def listOf[A](g: Gen[A]): Gen[List[A]] = g.listOfAtMostN(Int.MaxValue)
 
-
   def stream[A](r: Rand[A])(rng: RNG): Stream[A] = {
     val (a, rngNext) = r.run(rng)
     Stream.cons[A](a, stream(r)(rngNext))
@@ -168,6 +175,9 @@ case class Gen[+A](r: State[RNG, A])  {
     //quite interesting that eta expansion is necessary here to get the term to type
     flatMap(a => a.map(b => Gen.unit[B](b)).getOrElse(ground))
   }
+
+  def otherThan[B >: A](s: Set[B]): Gen[A] = map(x => Some(x).filter(a => !s.contains(a))).ground
+  def otherThan[B >: A](b: B): Gen[A] = otherThan(Set(b))
 
   def listOfN(n: Int): Gen[List[A]] =
     Gen(State.sequence(List.fill(n)(r)))
@@ -213,5 +223,15 @@ object Main extends App {
     list.forall( _ <= max)
   }}
 
+  val sortedSpec = Prop.forAll(SGen.listOf(smallInts)) { list =>
+    val sorted = list.sorted
+    //overall I find this a nice way to check if a list is sorted,
+    //but I have some concern that it may not be as readable as a test should be
+    sorted.foldRight(Option(Int.MaxValue)) { case (next, minIfSorted) =>
+      minIfSorted.flatMap(min => Some(next).filter(_ <= min))
+    }.isDefined
+  }
+
   Prop.check(maxSpec, testCases = 1000)
+  Prop.check(sortedSpec)
 }
