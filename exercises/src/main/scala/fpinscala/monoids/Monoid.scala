@@ -85,7 +85,7 @@ object Monoid {
     m.op(x, m.zero) == x &&
     m.op(m.zero, x) == x
   }
-  
+
   def concatenate[A](as: List[A], m: Monoid[A]): A =
     as.foldLeft(m.zero)(m.op)
 
